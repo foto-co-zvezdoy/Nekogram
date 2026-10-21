@@ -45,12 +45,22 @@ jobs:
           echo "--- ndk ---"; ls -1 "$ANDROID_HOME/ndk"
           echo "--- cmake ---"; ls -1 "$ANDROID_HOME/cmake"
 
+      - name: Free disk space
+        run: |
+          sudo rm -rf /usr/local/lib/android/sdk/system-images || true
+          sudo rm -rf /usr/local/lib/android/sdk/emulator || true
+          sudo rm -rf /usr/share/dotnet || true
+          sudo rm -rf /opt/ghc || true
+          sudo rm -rf /opt/hostedtoolcache/CodeQL || true
+          df -h /
+
       - name: Configure Gradle
         run: |
           mkdir -p ~/.gradle
           {
-            echo 'org.gradle.jvmargs=-Xmx4g -Dfile.encoding=UTF-8 -XX:+UseParallelGC'
+            echo 'org.gradle.jvmargs=-Xmx3g -Dfile.encoding=UTF-8 -XX:+UseParallelGC'
             echo 'org.gradle.parallel=true'
+            echo 'org.gradle.workers.max=4'
             echo 'org.gradle.caching=true'
             echo 'android.native.buildOutput=verbose'
           } >> ~/.gradle/gradle.properties
