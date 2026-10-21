@@ -12,7 +12,7 @@ concurrency:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 240
     steps:
       - name: Checkout sources with submodules
@@ -28,10 +28,22 @@ jobs:
           java-version: '25'
           cache: gradle
 
-      - name: Install Android SDK, NDK and CMake
+      - name: Set up Android SDK tools
         uses: android-actions/setup-android@v4
-        with:
-          packages: "build-tools;37.0.0 ndk;27.3.13750724 platforms;android-37 cmake;3.22.1"
+
+      - name: Install platform, build-tools, NDK and CMake
+        run: |
+          yes | sdkmanager --licenses > /dev/null || true
+          sdkmanager --install \
+            "platforms;android-37.0" \
+            "build-tools;37.0.0" \
+            "ndk;27.3.13750724" \
+            "cmake;3.22.1"
+          # AGP resolves compileSdk 37 to platforms/android-37
+          ln -sfn "$ANDROID_HOME/platforms/android-37.0" "$ANDROID_HOME/platforms/android-37"
+          echo "--- platforms ---"; ls -1 "$ANDROID_HOME/platforms"
+          echo "--- ndk ---"; ls -1 "$ANDROID_HOME/ndk"
+          echo "--- cmake ---"; ls -1 "$ANDROID_HOME/cmake"
 
       - name: Configure Gradle
         run: |
