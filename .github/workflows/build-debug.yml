@@ -1,0 +1,67 @@
+name: Build Nekogram debug APK
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: nekogram-debug-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 240
+    steps:
+      - name: Checkout sources with submodules
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          fetch-depth: 1
+
+      - name: Set up JDK 25
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '25'
+          cache: gradle
+
+      - name: Install Android SDK, NDK and CMake
+        uses: android-actions/setup-android@v4
+        with:
+          packages: "build-tools;37.0.0 ndk;27.3.13750724 platforms;android-37 cmake;3.22.1"
+
+      - name: Configure Gradle
+        run: |
+          mkdir -p ~/.gradle
+          {
+            echo 'org.gradle.jvmargs=-Xmx4g -Dfile.encoding=UTF-8 -XX:+UseParallelGC'
+            echo 'org.gradle.parallel=true'
+            echo 'org.gradle.caching=true'
+            echo 'android.native.buildOutput=verbose'
+          } >> ~/.gradle/gradle.properties
+
+      - name: Configure local.properties
+        run: |
+          echo "sdk.dir=$ANDROID_HOME" > local.properties
+          echo "mapsApiKey=" >> local.properties
+
+      - name: Build debug APK for arm64-v8a
+        run: |
+          ./gradlew --stacktrace :TMessagesProj_App:assembleDebug \
+            -Pandroid.injected.build.abi=arm64-v8a
+
+      - name: List produced APKs
+        if: always()
+        run: |
+          find TMessagesProj_App/build/outputs/apk -type f -name '*.apk' -exec ls -lh {} \; || true
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: nekogram-debug-arm64-v8a
+          path: TMessagesProj_App/build/outputs/apk/**/*.apk
+          if-no-files-found: error
+          retention-days: 14
