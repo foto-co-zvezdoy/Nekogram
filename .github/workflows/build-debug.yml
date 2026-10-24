@@ -79,15 +79,25 @@ jobs:
           ./gradlew --stacktrace :TMessagesProj_App:assembleDebug \
             -Pandroid.injected.build.abi=arm64-v8a
 
-      - name: List produced APKs
+      - name: Locate produced APKs
         if: always()
         run: |
-          find TMessagesProj_App/build/outputs/apk -type f -name '*.apk' -exec ls -lh {} \; || true
+          pwd
+          echo "--- top level ---"; ls -la
+          echo "--- app build dir ---"; ls -la TMessagesProj_App/build || true
+          echo "--- outputs ---"; ls -la TMessagesProj_App/build/outputs || true
+          echo "--- apk/aab files in workspace ---"
+          find "$GITHUB_WORKSPACE" -type f \( -name '*.apk' -o -name '*.aab' \) 2>/dev/null | head -50
+          echo "--- outputs dirs in workspace ---"
+          find "$GITHUB_WORKSPACE" -type d -name outputs 2>/dev/null | head -20
 
       - name: Upload APK artifact
+        if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: nekogram-debug-arm64-v8a
-          path: TMessagesProj_App/build/outputs/apk/**/*.apk
-          if-no-files-found: error
+          name: nekogram-debug-apk
+          path: |
+            **/*.apk
+            **/*.aab
+          if-no-files-found: warn
           retention-days: 14
